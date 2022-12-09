@@ -1,7 +1,8 @@
 import re
 import logging
 
-from typing import List, Optional
+from typing import List, Optional, Type, Union
+from tuya.packets import Packet, Data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -9,33 +10,19 @@ MIN_PACKET_SIZE = 7
 RE_PACKET_HEADER = rb'(?=\x55\xAA)'
 
 
-class Packet:
-    version: int = 0
-    command: int = 0
-    data: bytes = b''
-
-    def __repr__(self) -> str:
-        return f'Packet[Version: {self.version} Command: {self.command} Data: {self.data}]'
+def _extract_data(data: bytes) -> Optional[Type[Data]]:
+    return None
 
 
 def _extract_packet(data: bytes) -> Optional[Packet]:
     if len(data) < MIN_PACKET_SIZE:
         return None
-
     crc = data[-1]
     data = data[:-1]
-
     if not _check_crc(data, crc):
         return None
-
     data = data[2:-1]
-
-    packet = Packet()
-    packet.version = data[0]
-    packet.command = data[1]
-    packet.data = data[4:-1]
-
-    return packet
+    return Packet(version=data[0], command=data[0], data=_extract_data(data[4:-1]))
 
 
 def _check_crc(data: bytes, crc: int) -> bool:
