@@ -2,8 +2,8 @@ import re
 import logging
 
 from typing import List, Optional, Type
-from tuya.packets import Packet, Data, Sender
 from tuya.hendlers import Commands
+from tuya.structs import *
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def _extract_packet(input_data: bytes) -> Optional[Packet]:
     sender = input_data[2]
     command = input_data[3]
     length = int.from_bytes(input_data[4:6], byteorder="big")
-    data = input_data[6:6+length]
+    data = input_data[6:6 + length]
     crc = input_data[-1]
 
     if header != b'\x55\xAA':
