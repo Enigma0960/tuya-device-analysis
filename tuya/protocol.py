@@ -21,7 +21,7 @@ def _extract_packet(input_data: bytes) -> Optional[Packet]:
     if len(input_data) < MIN_PACKET_SIZE:
         return None
 
-    _LOGGER.debug(f"Extract packet {input_data}")
+    # _LOGGER.debug(f"Extract packet {input_data}")
 
     header = input_data[0:2]
     sender = input_data[2]
@@ -54,7 +54,7 @@ class TuyaProtocol:
 
         while len(self._queue) >= MIN_PACKET_SIZE:
             candidates = re.split(RE_PACKET_HEADER, self._queue)
-            _LOGGER.debug(candidates)
+            # _LOGGER.debug(candidates)
 
             result = [packet for packet in [_extract_packet(candidate) for candidate in candidates[:-1]] if
                       packet is not None]
@@ -65,5 +65,7 @@ class TuyaProtocol:
                 self._queue = b''
             else:
                 self._queue = candidates[-1]
+                if len(self._queue) >= MIN_PACKET_SIZE:
+                    break
 
         return result
