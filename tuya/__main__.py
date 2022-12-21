@@ -23,8 +23,10 @@ async def read(port: aioserial.AioSerial, name: str):
                 with open(f'debug_{name}.txt', 'ab+') as file:
                     file.write(data)
 
-                packets = protocol.proces(data)
-                _LOGGER.debug(packets)
+                # packets = protocol.proces(data)
+                _LOGGER.debug(data)
+                if data.find(b'\x55\xaa'):
+                    _LOGGER.debug('\n')
             await asyncio.sleep(0)
     finally:
         port.close()
@@ -53,8 +55,8 @@ TEST_TX_DATA = b'\x55\xaa\x00\x00\x00\x00\xff\x55\xaa\x00\x00\x00\x00\xff\x55\xa
                b'\x00\x00\xff\x55\xaa\x00\x00\x00\x00\xff\x55\xaa\x00\x00\x00\x00\xff'
 
 if __name__ == '__main__':
-    protocol = TuyaProtocol()
-    packets = protocol.proces(TEST_RX_DATA + TEST_TX_DATA)
-    _LOGGER.debug(packets)
+    # protocol = TuyaProtocol()
+    # packets = protocol.proces(TEST_RX_DATA + TEST_TX_DATA)
+    # _LOGGER.debug(packets)
 
-    # asyncio.run(main(), debug=True)
+    asyncio.run(main(), debug=True)

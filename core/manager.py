@@ -1,6 +1,6 @@
 import asyncio
 from abc import ABC
-from typing import Optional, Callable, Any, Dict, List
+from typing import Optional, Callable, Any, Dict, List, Type
 
 
 class Interface(ABC):
@@ -15,32 +15,36 @@ class Protocol(ABC):
     pass
 
 
+class Filter(ABC):
+    pass
+
+
 class Manager:
     def __init__(self):
         self._handler: Dict[int, List[Callable[..., Any]]] = {}
 
-    def handler(self, cmd: int) -> Callable[..., Any]:
+    def handler(self, cmd: int, filter: Type[Filter] = None) -> Callable[..., Any]:
         def decorator(fn: Callable[..., Any]):
-            async def _handler(*_args, **_kwargs):
+            async def _handler(*_args):
+                loop = asyncio.get_running_loop()
                 if asyncio.iscoroutinefunction(fn):
-                    await fn(*_args, **_kwargs)
+                    loop.create_task(fn(*_args))
                 else:
-                    # add await wrapper!
-                    fn(*_args, **_kwargs)
+                    loop.run_in_executor(None, fn, *_args)
 
-            self._registry_handler(cmd=cmd, handler=_handler)
+            self._registry_handler(cmd=cmd, handler=_handler, filter=filter)
             return _handler
 
         return decorator
 
     def command(self, cmd: int) -> Callable[..., Any]:
         def decorator(fn: Callable[..., Any]):
-            async def _sand(*_args, **_kwargs):
+            async def _sand(*_args):
+                loop = asyncio.get_running_loop()
                 if asyncio.iscoroutinefunction(fn):
-                    data = await fn(*_args, **_kwargs)
+                    data = await loop.create_task(fn(*_args))
                 else:
-                    # add await wrapper!
-                    data = fn(*_args, **_kwargs)
+                    data = await loop.run_in_executor(None, fn, *_args)
                 result = await self._send_command(cmd=cmd, data=data)
                 return result
 
@@ -51,7 +55,7 @@ class Manager:
     async def _send_command(self, cmd: int, data: Any):
         return cmd, data
 
-    async def _registry_handler(self, cmd: int, handler: Callable[..., Any]):
+    def _registry_handler(self, cmd: int, handler: Callable[..., Any], filter: Type[Filter] = None):
         if cmd in self._handler.keys():
             self._handler[cmd] += handler
         else:
