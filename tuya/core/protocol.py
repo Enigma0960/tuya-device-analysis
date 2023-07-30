@@ -1,8 +1,7 @@
-import enum
 import attr
 import logging
 
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Callable, Any, Dict
 
 from tuya.core.utils import extract, extract_int, extract_str, extract_bool
 from tuya.core.type import (
@@ -129,7 +128,24 @@ class TuyaProtocol:
         return value
 
 
+class TuyaParser:
+    def __init__(self):
+        self._commands: Dict[int, List[Callable[..., Any]]] = {}
+
+    def command(self, cmd: int) -> Callable[..., Any]:
+        def decorator(func: Callable[..., Any]):
+            if cmd in self._commands:
+                self._commands[cmd].append(func)
+            else:
+                self._commands[cmd] = [func]
+            return func
+
+        return decorator
+
+
 class TuyaDevice:
+    def __init__(self, parser: TuyaParser) -> None:
+        self._parser = parser
 
     def add_rx_packet(self, packet: TuyaPacket) -> None:
         pass

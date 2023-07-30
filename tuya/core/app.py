@@ -3,6 +3,8 @@ import logging
 import asyncio
 import aioserial
 
+from typing import List
+
 from tuya.device.base import make_tuya_device
 from tuya.core.protocol import TuyaPacket, TuyaProtocol, TuyaDevice
 from tuya.core.type import (
@@ -82,9 +84,11 @@ class TuyaApp:
 
             data: bytes = await port.read_async()
 
-            packet: TuyaPacket = protocol.process(data)
+            packets: List[TuyaPacket] = protocol.process(data)
             if self.isRx(port):
-                self._device.add_rx_packet(packet)
+                for packet in packets:
+                    self._device.add_rx_packet(packet)
             if self.isTx(port):
-                self._device.add_tx_packet(packet)
+                for packet in packets:
+                    self._device.add_tx_packet(packet)
             await asyncio.sleep(0)
