@@ -1,3 +1,4 @@
+import enum
 import attr
 import logging
 
@@ -8,30 +9,45 @@ from tuya.core.type import (
     TUYA_PACKET_HEADER,
     TUYA_MIN_PACKET_SIZE,
     TUYA_MAX_PACKET_SIZE,
-    TUYA_UPDATE_VERSION,
-    TUYA_EXTENSION_VERSION,
+    TUYA_MIN_VALUE_SIZE,
+    TUYA_RAW_VALUE_TYPE,
+    TUYA_BOOLEAN_VALUE_TYPE,
+    TUYA_NUMBER_VALUE_TYPE,
+    TUYA_STRING_VALUE_TYPE,
+    TUYA_ENUM_VALUE_TYPE,
+    TUYA_BITMAP_VALUE_TYPE,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+_EXTRACT_METHOD = {
+    TUYA_RAW_VALUE_TYPE: extract,
+    TUYA_BOOLEAN_VALUE_TYPE: extract_bool,
+    TUYA_NUMBER_VALUE_TYPE: extract_int,
+    TUYA_STRING_VALUE_TYPE: extract_str,
+    TUYA_ENUM_VALUE_TYPE: extract_int,
+    TUYA_BITMAP_VALUE_TYPE: extract,
+}
+
+
+@attr.s(repr=False)
+class TuyaValue:
+    id = attr.ib(type=Optional[int], default=None)
+    type = attr.ib(type=Optional[int], default=None)
+    value = attr.ib(type=Union[bool, int, str, bytes, None], default=None)
+
+    def __repr__(self) -> str:
+        return f'Value<id="{self.id}" value=[{self.type}] {self.value}>'
+
 
 @attr.s(repr=False)
 class TuyaPacket:
-    version = attr.ib(type=int, default=0)
-    command = attr.ib(type=int, default=0)
-    data_id = attr.ib(type=Optional[int], default=None)
-    data_value = attr.ib(type=Union[int, bool, str, bytes, None], default=None)
-
-    @property
-    def is_update(self) -> bool:
-        return self.version == TUYA_UPDATE_VERSION
-
-    @property
-    def is_extension(self) -> bool:
-        return self.version == TUYA_EXTENSION_VERSION
+    version = attr.ib(type=Optional[int], default=None)
+    command = attr.ib(type=Optional[int], default=None)
+    value = attr.ib(type=Optional[TuyaValue], default=None)
 
     def __repr__(self) -> str:
-        return f'Packet<cmd="{self.command}" dir="{"upd" if self.is_update else "ext"}" id="{self.data_id}" value="{self.data_value}">'
+        return f'Packet<cmd="{self.command}" ver="{self.version}" value={self.value}>'
 
 
 class TuyaProtocol:
@@ -79,7 +95,14 @@ class TuyaProtocol:
         header, data = extract(data, 2)
         packet.version, data = extract_int(data)
         packet.command, data = extract_int(data)
-        length, data = extract(data)
+        length, data = extract_int(data, 2)
+
+        if header != TUYA_PACKET_HEADER or len(data) < length:
+            return None
+
+        if length > 0:
+            value, data = extract(data, length)
+            packet.value = self._get_value(value)
 
         return packet
 
@@ -87,6 +110,23 @@ class TuyaProtocol:
         if len(data) < TUYA_MIN_PACKET_SIZE or len(data) > TUYA_MAX_PACKET_SIZE:
             return False
         return sum(data[:-1]) % 256 == data[-1]
+
+    def _get_value(self, data: bytes) -> Optional[TuyaValue]:
+        if len(data) < TUYA_MIN_VALUE_SIZE:
+            return None
+
+        value: TuyaValue = TuyaValue()
+
+        value.id, data = extract_int(data)
+        value.type, data = extract_int(data)
+        length, data = extract_int(data, 2)
+
+        if len(data) < length:
+            return None
+
+        value.value, _ = _EXTRACT_METHOD[value.type](data, length)
+
+        return value
 
 
 class TuyaDevice:
