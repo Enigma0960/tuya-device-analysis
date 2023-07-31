@@ -1,8 +1,3 @@
-from tuya.core.protocol import TuyaParser
+from tuya.core.protocol import TuyaParser, TuyaPacket, TuyaValue
 
 BaseParser = TuyaParser()
-
-
-@BaseParser.command(cmd=0x00)
-def heartbeats_data() -> None:
-    pass

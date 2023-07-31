@@ -20,7 +20,7 @@ def all_device() -> Dict[str, Type[TuyaDevice]]:
     return _DEVICE_LIST
 
 
-def make_tuya_device(device_name: str, parser: TuyaParser = BaseParser) -> Optional[TuyaDevice]:
+def make_tuya_device(device_name: str) -> Optional[TuyaDevice]:
     if device_name in _DEVICE_LIST:
-        return _DEVICE_LIST[device_name](parser)
+        return _DEVICE_LIST[device_name]()
     return None

@@ -85,10 +85,6 @@ class TuyaApp:
             data: bytes = await port.read_async()
 
             packets: List[TuyaPacket] = protocol.process(data)
-            if self.isRx(port):
-                for packet in packets:
-                    self._device.add_rx_packet(packet)
-            if self.isTx(port):
-                for packet in packets:
-                    self._device.add_tx_packet(packet)
-            await asyncio.sleep(0)
+            for packet in packets:
+                self._device.process(packet)
+        await asyncio.sleep(0)

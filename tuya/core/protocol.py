@@ -1,7 +1,8 @@
 import attr
 import logging
 
-from typing import Union, List, Optional, Callable, Any, Dict
+from functools import wraps
+from typing import Union, List, Optional, Callable, Any, Dict, Tuple
 
 from tuya.core.utils import extract, extract_int, extract_str, extract_bool
 from tuya.core.type import (
@@ -31,12 +32,12 @@ _EXTRACT_METHOD = {
 
 @attr.s(repr=False)
 class TuyaValue:
-    id = attr.ib(type=Optional[int], default=None)
+    qpid = attr.ib(type=Optional[int], default=None)
     type = attr.ib(type=Optional[int], default=None)
     value = attr.ib(type=Union[bool, int, str, bytes, None], default=None)
 
     def __repr__(self) -> str:
-        return f'Value<id="{self.id}" value=[{self.type}] {self.value}>'
+        return f'Value<qpid="{self.qpid}" value=[{self.type}] {self.value}>'
 
 
 @attr.s(repr=False)
@@ -130,25 +131,37 @@ class TuyaProtocol:
 
 class TuyaParser:
     def __init__(self):
-        self._commands: Dict[int, List[Callable[..., Any]]] = {}
+        self._handler: Dict[Tuple[Optional[int], Optional[int]], List[Callable[..., Any]]] = {}
 
-    def command(self, cmd: int) -> Callable[..., Any]:
+    def handler(self, cmd: Optional[int] = None, qpid: Optional[int] = None) -> Callable[..., Any]:
         def decorator(func: Callable[..., Any]):
-            if cmd in self._commands:
-                self._commands[cmd].append(func)
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(func.__name__, *args, **kwargs)
+
+            if (cmd, id) in self._handler:
+                self._handler[cmd, qpid].append(wrapper)
             else:
-                self._commands[cmd] = [func]
+                self._handler[cmd, qpid] = [wrapper]
             return func
 
         return decorator
 
+    def parse(self, packet: TuyaPacket) -> None:
+        if packet.command is None:
+            return
+        if packet.value is None:
+            if (packet.command, None) in self._handler:
+                for func in self._handler[packet.command, None]:
+                    func(packet)
+        elif (packet.command, packet.value.qpid) in self._handler:
+            for func in self._handler[packet.command, packet.value.qpid]:
+                func(packet)
+
 
 class TuyaDevice:
     def __init__(self, parser: TuyaParser) -> None:
-        self._parser = parser
+        self.parser = parser
 
-    def add_rx_packet(self, packet: TuyaPacket) -> None:
-        pass
-
-    def add_tx_packet(self, packet: TuyaPacket) -> None:
-        pass
+    def process(self, packet: TuyaPacket):
+        self.parser.parse(packet)
