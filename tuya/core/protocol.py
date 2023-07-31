@@ -86,7 +86,6 @@ class TuyaProtocol:
                 else:
                     break
             if packet is not None:
-                _LOGGER.debug(f'Packet find: {packet}')
                 packet_lest.append(packet)
 
         if len(self._queue) >= TUYA_MAX_PACKET_SIZE:
@@ -125,7 +124,7 @@ class TuyaProtocol:
 
         value: TuyaValue = TuyaValue()
 
-        value.id, data = extract_int(data)
+        value.qpid, data = extract_int(data)
         value.type, data = extract_int(data)
         length, data = extract_int(data, 2)
 
@@ -165,6 +164,10 @@ class TuyaParser:
         elif (packet.command, packet.value.qpid) in self._handler:
             for func in self._handler[packet.command, packet.value.qpid]:
                 func(packet)
+
+        # For all
+        for func in self._handler[None, None]:
+            func(packet)
 
 
 class TuyaDevice:

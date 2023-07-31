@@ -7,7 +7,7 @@ from device.base import name, all_device, TuyaDevice
 
 text_format = '%(asctime)s %(levelname)s (%(threadName)s) [%(name)s] %(message)s'
 date_format = '%Y-%m-%d %H:%M:%S'
-logging.basicConfig(level=logging.INFO, format=text_format, datefmt=date_format)
+logging.basicConfig(level=logging.DEBUG, format=text_format, datefmt=date_format)
 
 _LOGGER = logging.getLogger(__name__)
 

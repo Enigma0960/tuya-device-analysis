@@ -11,6 +11,10 @@ class Tol47WifiEp(TuyaDevice):
     def __init__(self):
         super().__init__(parser)
 
+    @parser.handler()
+    def all(self, packet: TuyaPacket):
+        _LOGGER.debug(packet)
+
     @parser.handler(cmd=0x00)
     def heartbeats(self, packet: TuyaPacket):
         if packet.is_modem == 0x00:
