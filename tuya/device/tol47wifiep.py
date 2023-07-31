@@ -13,4 +13,7 @@ class Tol47WifiEp(TuyaDevice):
 
     @parser.handler(cmd=0x00)
     def heartbeats(self, packet: TuyaPacket):
-        pass
+        if packet.is_modem == 0x00:
+            _LOGGER.info("Ping")
+        else:
+            _LOGGER.info("Pong")

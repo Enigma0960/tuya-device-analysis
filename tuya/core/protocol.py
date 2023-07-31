@@ -46,6 +46,14 @@ class TuyaPacket:
     command = attr.ib(type=Optional[int], default=None)
     value = attr.ib(type=Optional[TuyaValue], default=None)
 
+    @property
+    def is_modem(self) -> bool:
+        return self.version == 0x03
+
+    @property
+    def is_mcu(self) -> bool:
+        return self.version == 0x00
+
     def __repr__(self) -> str:
         return f'Packet<cmd="{self.command}" ver="{self.version}" value={self.value}>'
 
