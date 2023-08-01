@@ -1,23 +1,15 @@
 import logging
 
 from tuya.core.protocol import TuyaDevice, TuyaParser, TuyaPacket
+from tuya.core.command import BaseParser
 
 _LOGGER = logging.getLogger(__name__)
-
-parser = TuyaParser()
 
 
 class Tol47WifiEp(TuyaDevice):
     def __init__(self):
-        super().__init__(parser)
+        super().__init__(BaseParser)
 
-    @parser.handler()
-    def all(self, packet: TuyaPacket):
-        _LOGGER.debug(packet)
-
-    @parser.handler(cmd=0x00)
-    def heartbeats(self, packet: TuyaPacket):
-        if packet.is_modem == 0x00:
-            _LOGGER.info("Ping")
-        else:
-            _LOGGER.info("Pong")
+        @BaseParser.handler()
+        def all_handler(packet: TuyaPacket):
+            _LOGGER.debug(packet)

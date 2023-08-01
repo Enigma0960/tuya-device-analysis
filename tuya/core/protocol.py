@@ -142,14 +142,10 @@ class TuyaParser:
 
     def handler(self, cmd: Optional[int] = None, qpid: Optional[int] = None) -> Callable[..., Any]:
         def decorator(func: Callable[..., Any]):
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(func.__name__, *args, **kwargs)
-
             if (cmd, id) in self._handler:
-                self._handler[cmd, qpid].append(wrapper)
+                self._handler[cmd, qpid].append(func)
             else:
-                self._handler[cmd, qpid] = [wrapper]
+                self._handler[cmd, qpid] = [func]
             return func
 
         return decorator
