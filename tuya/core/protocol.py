@@ -32,12 +32,12 @@ _EXTRACT_METHOD = {
 
 @attr.s(repr=False)
 class TuyaValue:
-    qpid = attr.ib(type=Optional[int], default=None)
+    dpid = attr.ib(type=Optional[int], default=None)
     type = attr.ib(type=Optional[int], default=None)
     value = attr.ib(type=Union[bool, int, str, bytes, None], default=None)
 
     def __repr__(self) -> str:
-        return f'Value<qpid="{self.qpid}" value=[{self.type}] {self.value}>'
+        return f'Value<dpid="{self.dpid}" value=[{self.type}] {self.value}>'
 
 
 @attr.s(repr=False)
@@ -124,7 +124,7 @@ class TuyaProtocol:
 
         value: TuyaValue = TuyaValue()
 
-        value.qpid, data = extract_int(data)
+        value.dpid, data = extract_int(data)
         value.type, data = extract_int(data)
         length, data = extract_int(data, 2)
 
@@ -140,12 +140,25 @@ class TuyaParser:
     def __init__(self):
         self._handler: Dict[Tuple[Optional[int], Optional[int]], List[Callable[..., Any]]] = {}
 
-    def handler(self, cmd: Optional[int] = None, qpid: Optional[int] = None) -> Callable[..., Any]:
+    def handler(self, cmd: Union[int, List[int], None] = None, dpid: Union[int, List[int], None] = None) -> Callable[
+        ..., Any]:
         def decorator(func: Callable[..., Any]):
-            if (cmd, id) in self._handler:
-                self._handler[cmd, qpid].append(func)
+            if type(cmd) is list:
+                cmd_list = cmd
             else:
-                self._handler[cmd, qpid] = [func]
+                cmd_list = [cmd]
+
+            if type(dpid) is list:
+                dpid_list = dpid
+            else:
+                dpid_list = [dpid]
+
+            for cmd_i in cmd_list:
+                for dpid_i in dpid_list:
+                    if (cmd_i, dpid_i) in self._handler:
+                        self._handler[cmd_i, dpid_i].append(func)
+                    else:
+                        self._handler[cmd_i, dpid_i] = [func]
             return func
 
         return decorator
@@ -157,13 +170,14 @@ class TuyaParser:
             if (packet.command, None) in self._handler:
                 for func in self._handler[packet.command, None]:
                     func(packet)
-        elif (packet.command, packet.value.qpid) in self._handler:
-            for func in self._handler[packet.command, packet.value.qpid]:
+        elif (packet.command, packet.value.dpid) in self._handler:
+            for func in self._handler[packet.command, packet.value.dpid]:
                 func(packet)
 
         # For all
-        for func in self._handler[None, None]:
-            func(packet)
+        if (None, None) in self._handler:
+            for func in self._handler[None, None]:
+                func(packet)
 
 
 class TuyaDevice:
