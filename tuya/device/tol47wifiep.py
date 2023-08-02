@@ -43,6 +43,10 @@ class Tol47WifiEp(TuyaDevice):
         def sound_mode_handler(packet: TuyaPacket) -> None:
             _LOGGER.info(f'Sound is {"on" if packet.value.value else "off"}')
 
+        @BaseParser.handler(cmd=7, dpid=16)
+        def error_code_handler(packet: TuyaPacket) -> None:
+            _LOGGER.info(f'Error code: {packet.value.value}')
+
         @BaseParser.handler(cmd=7, dpid=20)
         def temp_correct_handler(packet: TuyaPacket) -> None:
             value: int = packet.value.value - (1 << 32)
@@ -54,7 +58,11 @@ class Tol47WifiEp(TuyaDevice):
 
         @BaseParser.handler(cmd=7, dpid=25)
         def sensor_mode_handler(packet: TuyaPacket) -> None:
-            _LOGGER.info(f'Sensor mode {packet.value.value} °C')
+            _LOGGER.info(f'Sensor mode {packet.value.value}')
+
+        @BaseParser.handler(cmd=7, dpid=26)
+        def frost_protection_handler(packet: TuyaPacket) -> None:
+            _LOGGER.info(f'Frost protection {packet.value.value}')
 
         @BaseParser.handler(cmd=7, dpid=41)
         def backlight_handler(packet: TuyaPacket) -> None:
@@ -75,6 +83,10 @@ class Tol47WifiEp(TuyaDevice):
                 out += f'\tConfig {config + 1}: {first_time}:{second_time} - {temp / 10} °C\n'
             _LOGGER.info(out)
 
+        @BaseParser.handler(cmd=7, dpid=101)
+        def feedback_mod_handler(packet: TuyaPacket) -> None:
+            _LOGGER.info(f'Feedback mod {packet.value.value}')
+
         @BaseParser.handler(cmd=7, dpid=105)
         def hysteresis_handler(packet: TuyaPacket) -> None:
             _LOGGER.info(f'Hysteresis: {packet.value.value} °C')
@@ -85,7 +97,7 @@ class Tol47WifiEp(TuyaDevice):
 
         # -----------------
 
-        @BaseParser.handler(cmd=7, dpid=[6, 8])
+        @BaseParser.handler(cmd=7, dpid=[16, 31])
         def _(packet: TuyaPacket) -> None:
             _LOGGER.info(f'Test {packet.value.dpid}: {packet.value.value}')
 
