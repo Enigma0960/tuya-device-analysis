@@ -13,7 +13,8 @@ class Tol47WifiEp(TuyaDevice):
 
         @BaseParser.handler()
         def all_handler(packet: TuyaPacket) -> None:
-            _LOGGER.debug(packet)
+            with open('log.txt', 'at') as file:
+                file.write(f'{packet}\n')
 
         @BaseParser.handler(cmd=7, dpid=1)
         def on_off_handler(packet: TuyaPacket) -> None:
@@ -104,3 +105,7 @@ class Tol47WifiEp(TuyaDevice):
         @BaseParser.handler(cmd=7, dpid=list(range(9, 200)))
         def _(packet: TuyaPacket) -> None:
             _LOGGER.info(f'Test {packet.value.dpid}: {packet.value.value}')
+
+        @BaseParser.handler(cmd=0x1C)
+        def get_local_time(packet: TuyaPacket):
+            _LOGGER.info(f'Set local time: {packet.value}')

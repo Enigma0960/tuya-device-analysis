@@ -1,5 +1,6 @@
 import attr
 import logging
+import datetime
 
 from functools import wraps
 from typing import Union, List, Optional, Callable, Any, Dict, Tuple
@@ -10,6 +11,8 @@ from tuya.core.type import (
     TUYA_MIN_PACKET_SIZE,
     TUYA_MAX_PACKET_SIZE,
     TUYA_MIN_VALUE_SIZE,
+    TUYA_MIN_DATA_STREAM_SIZE,
+    TUYA_MIN_LOCAL_TIME_SIZE,
     TUYA_RAW_VALUE_TYPE,
     TUYA_BOOLEAN_VALUE_TYPE,
     TUYA_NUMBER_VALUE_TYPE,
@@ -44,7 +47,7 @@ class TuyaValue:
 class TuyaPacket:
     version = attr.ib(type=Optional[int], default=None)
     command = attr.ib(type=Optional[int], default=None)
-    value = attr.ib(type=Optional[TuyaValue], default=None)
+    value = attr.ib(type=Union[TuyaValue, bytes, Any, None], default=None)
 
     @property
     def is_modem(self) -> bool:
@@ -104,12 +107,33 @@ class TuyaProtocol:
         packet.command, data = extract_int(data)
         length, data = extract_int(data, 2)
 
+        # remove crc
+        data = data[:-1]
+
         if header != TUYA_PACKET_HEADER or len(data) < length:
             return None
 
-        if length > 0:
+        if length == 0:
+            return packet
+
+        if packet.command in [0x00]:
+            packet.value, data = extract(data, length)
+        elif packet.command in [0x06, 0x07]:
             value, data = extract(data, length)
             packet.value = self._get_value(value)
+        elif packet.command in [0x1C]:
+            value, data = extract(data, length)
+            packet.value = self._get_local_time(value)
+        elif packet.command in [0x28]:
+            value, data = extract(data, length)
+            packet.value = self._get_map_striming(value)
+        else:
+            packet.value = data
+            _LOGGER.warning(f'Unrecognized command code: {packet}')
+            return packet
+
+        if len(data) > 0:
+            _LOGGER.warning(f'Not all data has been processed: {data}')
 
         return packet
 
@@ -135,13 +159,48 @@ class TuyaProtocol:
 
         return value
 
+    def _get_map_striming(self, data: bytes) -> Optional[Dict[str, Any]]:
+        if len(data) < TUYA_MIN_DATA_STREAM_SIZE:
+            return None
+
+        print([hex(b) for b in data])
+
+        map_id, data = extract_int(data, 2)
+        map_offset, data = extract_int(data, 2)
+        map_value = data
+
+        return {"map_id": map_id, "map_offset": map_offset, "map_value": map_value}
+
+    def _get_local_time(self, data: bytes) -> Optional[Dict[str, Any]]:
+        if len(data) < TUYA_MIN_LOCAL_TIME_SIZE:
+            return None
+
+        is_system_time, data = extract_int(data)
+        year, data = extract_int(data)
+        month, data = extract_int(data)
+        day, data = extract_int(data)
+        hour, data = extract_int(data)
+        minute, data = extract_int(data)
+        second, data = extract_int(data)
+        weekday, _ = extract_int(data)
+
+        return {
+            "is_system_time": is_system_time,
+            "year": year,
+            "month": month,
+            "day": day,
+            "hour": hour,
+            "minute": minute,
+            "second": second,
+            "weekday": weekday,
+        }
+
 
 class TuyaParser:
     def __init__(self):
         self._handler: Dict[Tuple[Optional[int], Optional[int]], List[Callable[..., Any]]] = {}
 
-    def handler(self, cmd: Union[int, List[int], None] = None, dpid: Union[int, List[int], None] = None) -> Callable[
-        ..., Any]:
+    def handler(self, cmd: Union[int, List[int], None] = None, dpid: Union[int, List[int], None] = None) -> Callable[..., Any]:
         def decorator(func: Callable[..., Any]):
             if type(cmd) is list:
                 cmd_list = cmd
@@ -166,7 +225,7 @@ class TuyaParser:
     def parse(self, packet: TuyaPacket) -> None:
         if packet.command is None:
             return
-        if packet.value is None:
+        if packet.value is None or type(packet.value) is not TuyaValue:
             if (packet.command, None) in self._handler:
                 for func in self._handler[packet.command, None]:
                     func(packet)
