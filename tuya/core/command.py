@@ -13,3 +13,8 @@ def heartbeats(packet: TuyaPacket):
         _LOGGER.info("Ping")
     else:
         _LOGGER.info("Pong")
+
+
+@BaseParser.handler(cmd=0x1C)
+def get_local_time(packet: TuyaPacket):
+    _LOGGER.info(f'Set local time: {packet.value}')

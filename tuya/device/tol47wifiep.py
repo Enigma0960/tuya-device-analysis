@@ -106,6 +106,3 @@ class Tol47WifiEp(TuyaDevice):
         def _(packet: TuyaPacket) -> None:
             _LOGGER.info(f'Test {packet.value.dpid}: {packet.value.value}')
 
-        @BaseParser.handler(cmd=0x1C)
-        def get_local_time(packet: TuyaPacket):
-            _LOGGER.info(f'Set local time: {packet.value}')

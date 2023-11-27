@@ -7,12 +7,14 @@ from tuya.core.protocol import TuyaDevice, TuyaParser
 from tuya.core.command import BaseParser
 
 from tuya.device.tol47wifiep import Tol47WifiEp
+from tuya.device.th1130 import Th1130
 
 _LOGGER = logging.getLogger(__name__)
 
 _DEVICE_LIST = {
     name(TuyaDevice): TuyaDevice,
     name(Tol47WifiEp): Tol47WifiEp,
+    name(Th1130): Th1130,
 }
 
 
