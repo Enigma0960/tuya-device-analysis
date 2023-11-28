@@ -7,3 +7,12 @@
 tuya --rx="COM1" --tx="COM2" --device="Tol47WifiEp"
 ```
 
+# Доступные устройства
+
+## Tol47WifiEp
+<img src="docs/Tol47WifiEp.jpg" alt="drawing" width="200"/>
+
+## TH1130
+<img src="docs/TH1130.jpg" alt="drawing" width="200"/>
+
+
