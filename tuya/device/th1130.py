@@ -32,10 +32,6 @@ class Th1130(TuyaDevice):
     def locked_handler(packet: TuyaPacket) -> None:
         _LOGGER.info(f'Locked is {"on" if packet.value.value else "off"}')
 
-    @BaseParser.handler(cmd=7, dpid=105)
-    def on_off_handler(packet: TuyaPacket) -> None:
-        _LOGGER.info(f'Heater is {"on" if packet.value.value else "off"}')
-
     @BaseParser.handler(cmd=7, dpid=102)
     def on_off_handler(packet: TuyaPacket) -> None:
         if packet.value.value == 0:
@@ -57,18 +53,20 @@ class Th1130(TuyaDevice):
     def hysteresis_handler(packet: TuyaPacket) -> None:
         _LOGGER.info(f'Hysteresis: {packet.value.value} °C')
 
+    @BaseParser.handler(cmd=7, dpid=105)
+    def on_off_handler(packet: TuyaPacket) -> None:
+        _LOGGER.info(f'Heater is {"on" if packet.value.value else "off"}')
+
     @BaseParser.handler(cmd=7, dpid=106)
     def work_day_config_handler(packet: TuyaPacket) -> None:
         data = packet.value.value
         out = f'Work days config:\n'
         for config in range(0, 12):
-            minuts, data = extract_int(data, 2)
-            first_time = 0
-            second_time = 0
+            minutes, data = extract_int(data, 2)
             temp, data = extract_int(data, 2)
-            out += f'\tConfig {config + 1}: {first_time}:{second_time} - {temp / 10} °C\n'
+            out += f'\tConfig {config + 1}: {int(minutes / 60)}:{int(minutes % 60)} - {temp / 10} °C\n'
         _LOGGER.info(out)
 
-    @BaseParser.handler(cmd=7, dpid=[3, 5] + list(range(7, 200)))
+    @BaseParser.handler(cmd=7, dpid=[3, 5] + list(range(7, 150)))
     def _(packet: TuyaPacket) -> None:
         _LOGGER.info(f'Test {packet.value.dpid}: {packet.value.value}')
